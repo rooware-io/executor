@@ -1,6 +1,9 @@
 use reqwest::Url;
 use serde::{Deserialize, Serialize};
-use solana_sdk::{commitment_config::CommitmentLevel, hash::Hash, transaction::Transaction};
+use solana_sdk::{
+    account::Account, commitment_config::CommitmentLevel, hash::Hash, pubkey::Pubkey,
+    transaction::Transaction,
+};
 use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
 use std::str::FromStr;
 
@@ -35,6 +38,12 @@ pub struct RpcConfig {
 }
 
 pub type ClientResult<T> = Result<T, reqwest::Error>;
+
+impl Default for ExecutorClient {
+    fn default() -> Self {
+        ExecutorClient::new()
+    }
+}
 
 impl ExecutorClient {
     pub fn new() -> Self {
@@ -71,14 +80,6 @@ impl ExecutorClient {
             .json::<Hash>()
     }
 
-    pub fn get_rent_exempt_balance(&self, data_length: usize) -> ClientResult<u64> {
-        self.http_client
-            .get(self.build_url("/rent_exempt_balance"))
-            .json(&data_length)
-            .send()?
-            .json::<u64>()
-    }
-
     pub fn set_rpc_config(
         &self,
         rpc_config: RpcConfig,
@@ -87,6 +88,30 @@ impl ExecutorClient {
             .post(self.build_url("/set_rpc_config"))
             .json(&rpc_config)
             .send()
+    }
+
+    pub fn get_rent_exempt_balance(&self, data_length: usize) -> ClientResult<u64> {
+        self.http_client
+            .get(self.build_url("/rent_exempt_balance"))
+            .json(&data_length)
+            .send()?
+            .json::<u64>()
+    }
+
+    pub fn get_account(&self, pubkey: &Pubkey) -> ClientResult<Option<Account>> {
+        self.http_client
+            .get(self.build_url("/get_account"))
+            .json(pubkey)
+            .send()?
+            .json::<Option<Account>>()
+    }
+
+    pub fn get_accounts(&self, pubkeys: &Vec<Pubkey>) -> ClientResult<Vec<Option<Account>>> {
+        self.http_client
+            .get(self.build_url("/get_accounts"))
+            .json(pubkeys)
+            .send()?
+            .json::<Vec<Option<Account>>>()
     }
 
     pub fn execute_transaction_batch(

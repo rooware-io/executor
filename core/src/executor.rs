@@ -5,7 +5,6 @@ use crate::{
     },
     utils::{clone_keypair, random_keypair},
 };
-use anyhow::{Error, Result};
 use executor_client::DEFAULT_RPC_ENDPOINT;
 use itertools::{izip, Itertools};
 use solana_bpf_loader_program::{
@@ -84,10 +83,15 @@ impl Executor {
         self.bank.confirmed_last_blockhash()
     }
 
-    pub fn get_account(&self, pubkey: &Pubkey) -> Result<AccountSharedData> {
-        self.bank()
-            .get_account(pubkey)
-            .ok_or_else(|| Error::msg(format!("Account {} not found", pubkey)))
+    pub fn get_account(&self, pubkey: &Pubkey) -> Option<Account> {
+        self.bank().get_account(pubkey).map(From::from)
+    }
+
+    pub fn get_accounts(&self, pubkeys: &[Pubkey]) -> Vec<Option<Account>> {
+        pubkeys
+            .iter()
+            .map(|pk| self.bank().get_account(pk).map(From::from))
+            .collect_vec()
     }
 
     pub fn set_rpc_config(&mut self, rpc_endpoint: String, commitment_level: CommitmentLevel) {

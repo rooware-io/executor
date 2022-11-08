@@ -9,10 +9,7 @@ Bare-bones Solana transaction playground, based off of [Neodyme's poc-framework]
 - Consumable as:
   - Rust crate
   - HTTP server wrapper & client to decouple version sets, to avoid unnecessary dependency hell when possible
-
-### Todo
-
-- Fetch account through HTTP interface
+- Fetch account(s) through HTTP interface
 
 ### Gotchas
 

@@ -12,7 +12,7 @@ use solana_sdk::{
 use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
 
 fn main() {
-    let client = ExecutorClient::new();
+    let client = ExecutorClient::default();
     let payer = Pubkey::new_unique();
     let latest_blockhash = client.get_latest_blockhash().unwrap();
 

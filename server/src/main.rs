@@ -39,20 +39,12 @@ mod filters {
             .or(advance_blockhash(context.clone()))
             .or(set_rpc_config(context.clone()))
             .or(rent_exempt_balance(context.clone()))
+            .or(get_account(context.clone()))
+            .or(get_accounts(context.clone()))
             .or(execute_transaction_batch(context))
     }
 
     // Route definitions
-    pub fn set_rpc_config(
-        context: Context,
-    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
-        warp::path!("set_rpc_config")
-            .and(warp::post())
-            .and(warp::body::json())
-            .and(with_context(context))
-            .and_then(handlers::set_rpc_config)
-    }
-
     pub fn latest_blockhash(
         context: Context,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -72,6 +64,16 @@ mod filters {
             .and_then(handlers::advance_blockhash)
     }
 
+    pub fn set_rpc_config(
+        context: Context,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("set_rpc_config")
+            .and(warp::post())
+            .and(warp::body::json())
+            .and(with_context(context))
+            .and_then(handlers::set_rpc_config)
+    }
+
     pub fn rent_exempt_balance(
         context: Context,
     ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
@@ -80,6 +82,26 @@ mod filters {
             .and(warp::body::json())
             .and(with_context(context))
             .and_then(handlers::rent_exempt_balance)
+    }
+
+    pub fn get_account(
+        context: Context,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("get_account")
+            .and(warp::get())
+            .and(warp::body::json())
+            .and(with_context(context))
+            .and_then(handlers::get_account)
+    }
+
+    pub fn get_accounts(
+        context: Context,
+    ) -> impl Filter<Extract = impl warp::Reply, Error = warp::Rejection> + Clone {
+        warp::path!("get_accounts")
+            .and(warp::get())
+            .and(warp::body::json())
+            .and(with_context(context))
+            .and_then(handlers::get_accounts)
     }
 
     pub fn execute_transaction_batch(
@@ -103,7 +125,7 @@ mod filters {
 mod handlers {
     use super::Context;
     use executor_client::RpcConfig;
-    use solana_program::hash::Hash;
+    use solana_program::{hash::Hash, pubkey::Pubkey};
     use solana_sdk::transaction::Transaction;
     use solana_transaction_status::EncodedConfirmedTransactionWithStatusMeta;
     use std::convert::Infallible;
@@ -124,6 +146,17 @@ mod handlers {
         Ok(warp::reply::json(&latest_blockhash))
     }
 
+    pub async fn set_rpc_config(
+        rpc_config: RpcConfig,
+        context: Context,
+    ) -> Result<impl warp::Reply, Infallible> {
+        let mut context = context.lock().await;
+        context
+            .executor
+            .set_rpc_config(rpc_config.rpc_endpoint, rpc_config.commitment_level);
+        Ok(StatusCode::OK)
+    }
+
     pub async fn rent_exempt_balance(
         data_length: usize,
         context: Context,
@@ -135,15 +168,22 @@ mod handlers {
         Ok(warp::reply::json(&rent_exempt_balance))
     }
 
-    pub async fn set_rpc_config(
-        rpc_config: RpcConfig,
+    pub async fn get_account(
+        pubkey: Pubkey,
         context: Context,
     ) -> Result<impl warp::Reply, Infallible> {
-        let mut context = context.lock().await;
-        context
-            .executor
-            .set_rpc_config(rpc_config.rpc_endpoint, rpc_config.commitment_level);
-        Ok(StatusCode::OK)
+        let context = context.lock().await;
+        let maybe_account = context.executor.get_account(&pubkey);
+        Ok(warp::reply::json(&maybe_account))
+    }
+
+    pub async fn get_accounts(
+        pubkeys: Vec<Pubkey>,
+        context: Context,
+    ) -> Result<impl warp::Reply, Infallible> {
+        let context = context.lock().await;
+        let maybe_accounts = context.executor.get_accounts(&pubkeys);
+        Ok(warp::reply::json(&maybe_accounts))
     }
 
     pub async fn execute_transaction_batch(
