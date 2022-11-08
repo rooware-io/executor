@@ -13,6 +13,7 @@ use solana_bpf_loader_program::{
 };
 use solana_client::{client_error::reqwest::Url, rpc_client::RpcClient};
 use solana_ledger::token_balances;
+use solana_program::native_token::LAMPORTS_PER_SOL;
 use solana_runtime::{
     accounts_db::AccountShrinkThreshold,
     accounts_index::AccountSecondaryIndexes,
@@ -366,7 +367,7 @@ impl ExecutorBuilder {
         let genesis_config = GenesisConfig::new(
             &[(
                 faucet.pubkey(),
-                AccountSharedData::new(1u64 << 48, 0, &SYSTEM_PID),
+                AccountSharedData::new(1 * LAMPORTS_PER_SOL, 0, &SYSTEM_PID),
             )],
             &[],
         );
